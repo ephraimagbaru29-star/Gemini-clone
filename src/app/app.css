@@ -1,0 +1,13 @@
+/* App-level overrides — component styles live in index.css */
+
+/* Desktop sidebar always-visible mode */
+@media (min-width: 900px) {
+  .app-shell__body {
+    flex-direction: row;
+  }
+
+  /* On desktop the drawer should always be rendered */
+  .history-drawer {
+    display: flex;
+  }
+}
