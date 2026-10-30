@@ -108,7 +108,7 @@ async function sendToGemini(
 
   const model =
     (import.meta.env.VITE_GEMINI_MODEL as string | undefined)?.trim() ||
-    'gemini-2.5-flash';
+    'gemini-3.8-flash';
 
   // Convert chat messages to Gemini format
   // Gemini uses "user"/"model" roles and a "parts" array
