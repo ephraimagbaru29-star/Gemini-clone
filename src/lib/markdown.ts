@@ -11,7 +11,10 @@ marked.setOptions({
  * Converts a markdown string to sanitised HTML safe for dangerouslySetInnerHTML.
  */
 export function renderMarkdown(raw: string): string {
-  const html = marked.parse(raw) as string;
+  const parsed = marked.parse(raw);
+  // marked.parse can return a Promise if async extensions are registered.
+  // We use sync mode, so it returns a string — but guard just in case.
+  const html = typeof parsed === 'string' ? parsed : String(parsed ?? '');
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'code', 'pre', 'blockquote',

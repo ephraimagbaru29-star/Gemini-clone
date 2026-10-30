@@ -8,7 +8,7 @@ export interface SendMessageOptions {
 
 // Demo responses for offline/no-key mode
 const DEMO_RESPONSES = [
-  `Sure! Here's a quick summary:\n\n**Key Points**\n- This is a demo response from AstraChat.\n- No real AI provider is configured yet.\n- To enable real AI, add your API key to the \`.env\` file.\n\nYou can still explore all the UI features in demo mode.`,
+  `Sure! Here's a quick summary:\n\n**Key Points**\n- This is a demo response from Nova'sChat.\n- No real AI provider is configured yet.\n- To enable real AI, add your API key to the \`.env\` file.\n\nYou can still explore all the UI features in demo mode.`,
   `That's a great question! In demo mode, I return pre-written responses.\n\nTo get real answers:\n1. Copy \`.env.example\` to \`.env\`\n2. Add your \`VITE_OPENAI_API_KEY\` or \`VITE_GEMINI_API_KEY\`\n3. Restart the dev server\n\nI'll then use the actual model to respond.`,
   `Interesting! Let me think about that...\n\nIn a real setup I'd give you a thoughtful, context-aware response. For now, here's what I can tell you:\n\n> *"Demo mode is active. Responses are illustrative only."*\n\nFeel free to explore the drawer, attachments, settings, and theme switcher!`,
   `Here's a code example for context:\n\n\`\`\`typescript\ninterface Message {\n  role: 'user' | 'assistant';\n  content: string;\n}\n\nasync function chat(messages: Message[]) {\n  // Connect your AI provider here\n  return 'Hello from the assistant!';\n}\n\`\`\`\n\nThis is the pattern used in \`chatApi.ts\` — swap in your real provider endpoint.`,
@@ -102,9 +102,6 @@ export async function sendMessage({
   onChunk,
   signal,
 }: SendMessageOptions): Promise<string> {
-  const isDemoMode =
-    !import.meta.env.VITE_OPENAI_API_KEY && !import.meta.env.VITE_GEMINI_API_KEY;
-
   let fullResponse = '';
 
   const handleChunk = (chunk: string) => {
@@ -112,16 +109,31 @@ export async function sendMessage({
     onChunk?.(chunk);
   };
 
+  const hasOpenAIKey = !!import.meta.env.VITE_OPENAI_API_KEY?.trim();
+  const hasGeminiKey = !!import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  const isDemoMode = !hasOpenAIKey && !hasGeminiKey;
+
   if (isDemoMode) {
     const demoText = nextDemoResponse();
     await streamDemoResponse(demoText, handleChunk, signal);
   } else {
-    await sendToOpenAI(messages, handleChunk, signal);
+    try {
+      await sendToOpenAI(messages, handleChunk, signal);
+    } catch (err) {
+      // If the API call fails, fall back to demo mode so the user still gets a response
+      if ((err as Error).name === 'AbortError') throw err;
+      console.error('AI provider error, falling back to demo:', err);
+      const demoText = nextDemoResponse();
+      fullResponse = '';
+      await streamDemoResponse(demoText, handleChunk, signal);
+    }
   }
 
   return fullResponse;
 }
 
 export function isDemoMode(): boolean {
-  return !import.meta.env.VITE_OPENAI_API_KEY && !import.meta.env.VITE_GEMINI_API_KEY;
+  const hasOpenAIKey = !!import.meta.env.VITE_OPENAI_API_KEY?.trim();
+  const hasGeminiKey = !!import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  return !hasOpenAIKey && !hasGeminiKey;
 }

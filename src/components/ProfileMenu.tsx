@@ -103,7 +103,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
         </ul>
 
         <p className="profile-menu__disclaimer">
-          AstraChat is an independent demo, not an official Google product.
+          Nova'sChat is an independent demo, not an official Google product.
         </p>
       </div>
     </>

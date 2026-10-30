@@ -190,7 +190,7 @@ export const Composer: React.FC<ComposerProps> = ({
       )}
 
       <p className="composer__disclaimer">
-        AstraChat is an independent demo — responses may be inaccurate.
+        Nova'sChat is an independent demo — responses may be inaccurate.
       </p>
     </div>
   );

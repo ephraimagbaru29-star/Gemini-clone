@@ -121,7 +121,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           <section className="settings-dialog__section">
             <h3 className="settings-dialog__section-title">About</h3>
             <p className="settings-dialog__about-text">
-              AstraChat v0.1 — an independent AI chat demo built with React, TypeScript, and Vite.
+              Nova'sChat v0.1 — an independent AI chat demo built with React, TypeScript, and Vite.
               Not affiliated with Google. Conversations are stored locally in your browser.
             </p>
           </section>

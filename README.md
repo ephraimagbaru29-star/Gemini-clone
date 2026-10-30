@@ -1,6 +1,6 @@
-# AstraChat — Gemini-style AI Chat Demo
+# Nova'sChat — Gemini-style AI Chat Demo
 
-An independent, open-source AI chat web app inspired by conversational AI interfaces. Built with React, TypeScript, and Vite.
+An independent, open-source AI chat web app inspired by conversational AI interfaces. Built with React, TypeScript, and Vite. Branded as **Nova'sChat**.
 
 > **Not affiliated with Google.** This is a UI demo based on a public design reference.
 

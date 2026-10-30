@@ -1,7 +1,7 @@
 import type { Conversation, AppSettings } from '../types/chat';
 
-const CONVERSATIONS_KEY = 'astrachat_conversations';
-const SETTINGS_KEY = 'astrachat_settings';
+const CONVERSATIONS_KEY = 'novachat_conversations';
+const SETTINGS_KEY = 'novachat_settings';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',

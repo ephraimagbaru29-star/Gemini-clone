@@ -128,9 +128,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       } catch (err) {
         if ((err as Error).name === 'AbortError') return;
 
+        const errorMsg = (err as Error).message || 'Unknown error';
+        console.error('Chat error:', err);
+
         const errorAssistant: ChatMessage = {
           ...assistantMsg,
-          content: 'Sorry, something went wrong. Please try again.',
+          content: `Sorry, something went wrong.\n\n\`${errorMsg}\`\n\nPlease try again.`,
           status: 'error',
         };
         onConversationUpdate({

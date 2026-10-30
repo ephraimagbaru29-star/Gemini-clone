@@ -31,7 +31,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       <div className="topbar__brand">
         <SparkleIcon size={22} />
-        <span className="topbar__brand-name">AstraChat</span>
+        <span className="topbar__brand-name">Nova'sChat</span>
       </div>
 
       <div className="topbar__actions">

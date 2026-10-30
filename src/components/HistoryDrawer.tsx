@@ -112,7 +112,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
         <div className="history-drawer__header">
           <div className="history-drawer__header-brand">
             <SparkleIcon size={22} />
-            <span className="history-drawer__title">AstraChat</span>
+            <span className="history-drawer__title">Nova'sChat</span>
           </div>
           <div className="history-drawer__header-actions">
             <button
