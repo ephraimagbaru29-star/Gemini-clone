@@ -108,7 +108,7 @@ async function sendToGemini(
 
   const model =
     (import.meta.env.VITE_GEMINI_MODEL as string | undefined)?.trim() ||
-    'gemini-1.5-flash';
+    'gemini-2.5-flash';
 
   // Convert chat messages to Gemini format
   // Gemini uses "user"/"model" roles and a "parts" array
@@ -129,11 +129,14 @@ async function sendToGemini(
     };
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`;
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
     body: JSON.stringify(payload),
     signal,
   });
@@ -198,12 +201,10 @@ export async function sendMessage({
         await sendToOpenAI(messages, handleChunk, signal);
       }
     } catch (err) {
-      // If the API call fails, fall back to demo mode so the user still gets a response
+      // Let real errors surface — don't silently fall back to demo mode
       if ((err as Error).name === 'AbortError') throw err;
-      console.error('AI provider error, falling back to demo:', err);
-      const demoText = nextDemoResponse();
-      fullResponse = '';
-      await streamDemoResponse(demoText, handleChunk, signal);
+      console.error('AI provider error:', err);
+      throw err;
     }
   }
 
