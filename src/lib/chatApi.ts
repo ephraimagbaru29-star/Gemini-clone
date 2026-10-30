@@ -97,6 +97,78 @@ async function sendToOpenAI(
   }
 }
 
+// ─── Gemini API (Google AI Studio) ──────────────────────────────────────────
+async function sendToGemini(
+  messages: ChatMessage[],
+  onChunk: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  if (!apiKey) throw new Error('No Gemini API key configured');
+
+  const model =
+    (import.meta.env.VITE_GEMINI_MODEL as string | undefined)?.trim() ||
+    'gemini-1.5-flash';
+
+  // Convert chat messages to Gemini format
+  // Gemini uses "user"/"model" roles and a "parts" array
+  const systemMessages = messages.filter((m) => m.role === 'system');
+  const chatMessages = messages.filter((m) => m.role !== 'system');
+
+  const contents = chatMessages.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+
+  const payload: Record<string, unknown> = { contents };
+
+  // Gemini handles system instructions separately
+  if (systemMessages.length > 0) {
+    payload.systemInstruction = {
+      parts: [{ text: systemMessages.map((m) => m.content).join('\n') }],
+    };
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini error ${res.status}: ${err}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error('No response body from Gemini');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+      try {
+        const json = JSON.parse(trimmed.slice(6));
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) onChunk(text);
+      } catch {
+        // skip malformed lines
+      }
+    }
+  }
+}
+
 export async function sendMessage({
   messages,
   onChunk,
@@ -111,14 +183,20 @@ export async function sendMessage({
 
   const hasOpenAIKey = !!import.meta.env.VITE_OPENAI_API_KEY?.trim();
   const hasGeminiKey = !!import.meta.env.VITE_GEMINI_API_KEY?.trim();
-  const isDemoMode = !hasOpenAIKey && !hasGeminiKey;
+  const isDemo = !hasOpenAIKey && !hasGeminiKey;
 
-  if (isDemoMode) {
+  if (isDemo) {
     const demoText = nextDemoResponse();
     await streamDemoResponse(demoText, handleChunk, signal);
   } else {
+    // Pick the provider: prefer Gemini if its key is set, else OpenAI
+    const useGemini = hasGeminiKey;
     try {
-      await sendToOpenAI(messages, handleChunk, signal);
+      if (useGemini) {
+        await sendToGemini(messages, handleChunk, signal);
+      } else {
+        await sendToOpenAI(messages, handleChunk, signal);
+      }
     } catch (err) {
       // If the API call fails, fall back to demo mode so the user still gets a response
       if ((err as Error).name === 'AbortError') throw err;
