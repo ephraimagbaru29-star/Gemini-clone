@@ -131,9 +131,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         const errorMsg = (err as Error).message || 'Unknown error';
         console.error('Chat error:', err);
 
+        // Friendly message for overload errors
+        const isOverload = errorMsg.includes('503') ||
+          errorMsg.toLowerCase().includes('overloaded') ||
+          errorMsg.toLowerCase().includes('high demand') ||
+          errorMsg.toLowerCase().includes('unavailable');
+
+        const displayMsg = isOverload
+          ? `Gemini is currently overloaded. Please wait a moment and try again.`
+          : `Something went wrong.\n\n\`${errorMsg}\`\n\nPlease try again.`;
+
         const errorAssistant: ChatMessage = {
           ...assistantMsg,
-          content: `Sorry, something went wrong.\n\n\`${errorMsg}\`\n\nPlease try again.`,
+          content: displayMsg,
           status: 'error',
         };
         onConversationUpdate({

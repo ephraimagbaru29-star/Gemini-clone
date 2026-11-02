@@ -17,6 +17,8 @@ export interface ChatMessage {
   createdAt: number;
   status?: MessageStatus;
   attachments?: AttachmentMeta[];
+  imageUrl?: string;       // base64 data URL for generated images
+  imagePrompt?: string;    // the prompt used to generate the image
 }
 
 export interface Conversation {

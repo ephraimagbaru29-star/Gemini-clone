@@ -98,20 +98,14 @@ async function sendToOpenAI(
 }
 
 // ─── Gemini API (Google AI Studio) ──────────────────────────────────────────
-async function sendToGemini(
+async function sendToGeminiOnce(
   messages: ChatMessage[],
   onChunk: (chunk: string) => void,
+  model: string,
+  apiKey: string,
   signal?: AbortSignal,
 ): Promise<void> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
-  if (!apiKey) throw new Error('No Gemini API key configured');
-
-  const model =
-    (import.meta.env.VITE_GEMINI_MODEL as string | undefined)?.trim() ||
-    'gemini-3.8-flash';
-
   // Convert chat messages to Gemini format
-  // Gemini uses "user"/"model" roles and a "parts" array
   const systemMessages = messages.filter((m) => m.role === 'system');
   const chatMessages = messages.filter((m) => m.role !== 'system');
 
@@ -122,7 +116,6 @@ async function sendToGemini(
 
   const payload: Record<string, unknown> = { contents };
 
-  // Gemini handles system instructions separately
   if (systemMessages.length > 0) {
     payload.systemInstruction = {
       parts: [{ text: systemMessages.map((m) => m.content).join('\n') }],
@@ -172,6 +165,71 @@ async function sendToGemini(
   }
 }
 
+// Fallback model chain — tried in order when a model is unavailable
+const GEMINI_FALLBACK_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+];
+
+async function sendToGemini(
+  messages: ChatMessage[],
+  onChunk: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  if (!apiKey) throw new Error('No Gemini API key configured');
+
+  const primaryModel =
+    (import.meta.env.VITE_GEMINI_MODEL as string | undefined)?.trim() ||
+    'gemini-3.8-flash';
+
+  const modelsToTry = [primaryModel, ...GEMINI_FALLBACK_MODELS];
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 1500;
+
+  let lastError: Error = new Error('Unknown error');
+
+  for (const model of modelsToTry) {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await sendToGeminiOnce(messages, onChunk, model, apiKey, signal);
+        return; // success
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        lastError = err as Error;
+
+        const is503 = lastError.message.includes('503') ||
+          lastError.message.toLowerCase().includes('unavailable') ||
+          lastError.message.toLowerCase().includes('high demand');
+
+        const is429 = lastError.message.includes('429') ||
+          lastError.message.toLowerCase().includes('quota') ||
+          lastError.message.toLowerCase().includes('rate limit');
+
+        if ((is503 || is429) && attempt < MAX_RETRIES) {
+          // Wait and retry same model
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
+          continue;
+        }
+
+        if (is503 || is429) {
+          // Exhausted retries for this model — try next fallback
+          break;
+        }
+
+        // Non-retriable error (401, 404, etc.) — throw immediately
+        throw err;
+      }
+    }
+  }
+
+  // All models and retries exhausted
+  throw new Error(
+    `Gemini is temporarily overloaded. All models are unavailable right now. ` +
+    `Please wait a moment and try again.\n\nLast error: ${lastError.message}`,
+  );
+}
+
 export async function sendMessage({
   messages,
   onChunk,
@@ -215,4 +273,76 @@ export function isDemoMode(): boolean {
   const hasOpenAIKey = !!import.meta.env.VITE_OPENAI_API_KEY?.trim();
   const hasGeminiKey = !!import.meta.env.VITE_GEMINI_API_KEY?.trim();
   return !hasOpenAIKey && !hasGeminiKey;
+}
+
+// ─── Image generation ────────────────────────────────────────────────────────
+export interface GenerateImageResult {
+  imageUrl: string;   // base64 data URL
+  mimeType: string;
+}
+
+export async function generateImage(prompt: string): Promise<GenerateImageResult> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  if (!apiKey) throw new Error('No Gemini API key configured for image generation');
+
+  const model = 'gemini-3.1-flash-image';
+
+  const payload = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+  };
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini image error ${res.status}: ${err}`);
+  }
+
+  const json = await res.json();
+  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> =
+    json.candidates?.[0]?.content?.parts ?? [];
+
+  const imagePart = parts.find((p) => p.inlineData);
+  if (!imagePart?.inlineData) {
+    throw new Error('No image returned by Gemini. Try a more descriptive prompt.');
+  }
+
+  const { mimeType, data } = imagePart.inlineData;
+  return { imageUrl: `data:${mimeType};base64,${data}`, mimeType };
+}
+
+// Detect if a user message is an image generation request
+export function isImageRequest(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  const triggers = [
+    'generate an image',
+    'generate image',
+    'create an image',
+    'create image',
+    'draw',
+    'illustrate',
+    'make an image',
+    'make a picture',
+    'make me an image',
+    'show me an image',
+    'paint',
+    'sketch',
+    'render an image',
+    'produce an image',
+    'generate a picture',
+    'create a picture',
+    'design an image',
+    'visualize',
+  ];
+  return triggers.some((t) => lower.includes(t));
 }
