@@ -1,5 +1,4 @@
 import React from 'react';
-import { SparkleIcon } from './icons';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -18,22 +17,32 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   return (
     <header className="topbar" role="banner">
+      {/* Left: hamburger */}
       <button
         className="topbar__icon-btn"
         onClick={onMenuClick}
         aria-label="Open navigation drawer"
         title="Menu"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+        <svg width="22" height="18" viewBox="0 0 22 18" fill="none" aria-hidden="true">
+          <rect y="0"  width="22" height="2" rx="1" fill="currentColor"/>
+          <rect y="8"  width="22" height="2" rx="1" fill="currentColor"/>
+          <rect y="16" width="22" height="2" rx="1" fill="currentColor"/>
         </svg>
       </button>
 
+      {/* Center: brand name + Auto dropdown */}
       <div className="topbar__brand">
-        <SparkleIcon size={22} />
         <span className="topbar__brand-name">Nova'sChat</span>
+        <button className="topbar__model-pill" aria-label="Select model" title="Model selector">
+          <span>Auto</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </button>
       </div>
 
+      {/* Right: edit icon + avatar */}
       <div className="topbar__actions">
         <button
           className="topbar__icon-btn"
@@ -41,8 +50,9 @@ export const TopBar: React.FC<TopBarProps> = ({
           aria-label="New chat"
           title="New chat"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 5v14M5 12h14"/>
+          {/* Pen/edit icon matching Gemini's pencil-with-sparkle */}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
           </svg>
         </button>
 

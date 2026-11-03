@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { SendIcon, MicIcon, AttachIcon, StopIcon } from './icons';
+import { SendIcon, MicIcon, StopIcon } from './icons';
 import type { AttachmentMeta } from '../types/chat';
 
 interface ComposerProps {
@@ -93,7 +93,7 @@ export const Composer: React.FC<ComposerProps> = ({
     rec.start();
   };
 
-  const canSend = (text.trim().length > 0 || pendingAttachments.length > 0) && !disabled;
+  const hasContent = text.trim().length > 0 || pendingAttachments.length > 0;
 
   return (
     <div className="composer" role="form" aria-label="Message composer">
@@ -120,15 +120,18 @@ export const Composer: React.FC<ComposerProps> = ({
       )}
 
       <div className="composer__row">
+        {/* + button on the left */}
         <button
-          className="composer__icon-btn"
+          className="composer__plus-btn"
           onClick={onAttachClick}
           aria-label="Add attachment"
           title="Attach"
           type="button"
           disabled={disabled}
         >
-          <AttachIcon size={20} />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
         </button>
 
         <textarea
@@ -137,43 +140,45 @@ export const Composer: React.FC<ComposerProps> = ({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything…"
+          placeholder="Ask Gemini"
           rows={1}
           aria-label="Message input"
           aria-multiline="true"
           disabled={disabled}
         />
 
+        {/* Right side: stop / send / mic */}
         {isGenerating ? (
           <button
-            className="composer__icon-btn composer__icon-btn--stop"
+            className="composer__right-btn composer__right-btn--stop"
             onClick={onStop}
             aria-label="Stop generating"
             title="Stop"
             type="button"
           >
-            <StopIcon size={18} />
+            <StopIcon size={20} />
           </button>
-        ) : canSend ? (
+        ) : hasContent ? (
           <button
-            className="composer__send-btn"
+            className="composer__right-btn composer__right-btn--send"
             onClick={handleSend}
             aria-label="Send message"
             title="Send"
             type="button"
+            disabled={disabled}
           >
-            <SendIcon size={18} />
+            <SendIcon size={20} />
           </button>
         ) : (
           <button
-            className={`composer__icon-btn composer__icon-btn--mic${voiceState === 'recording' ? ' composer__icon-btn--recording' : ''}`}
+            className={`composer__right-btn${voiceState === 'recording' ? ' composer__right-btn--recording' : ''}`}
             onClick={handleVoice}
             aria-label={voiceState === 'recording' ? 'Stop recording' : 'Use voice input'}
             title={voiceState === 'denied' ? 'Microphone access denied' : 'Voice input'}
             type="button"
             disabled={disabled || voiceState === 'requesting'}
           >
-            <MicIcon size={20} />
+            <MicIcon size={22} />
           </button>
         )}
       </div>
@@ -188,10 +193,6 @@ export const Composer: React.FC<ComposerProps> = ({
           Microphone access denied. Check browser settings.
         </p>
       )}
-
-      <p className="composer__disclaimer">
-        Nova'sChat is an independent demo — responses may be inaccurate.
-      </p>
     </div>
   );
 };
