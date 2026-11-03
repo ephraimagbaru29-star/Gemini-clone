@@ -1373,3 +1373,211 @@ a { color: var(--accent); }
 @media (min-width: 1440px) {
   :root { --content-max: 960px; }
 }
+
+/* ─── Auth screen ─── */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    to bottom,
+    #0a0a0a 0%,
+    #0a0a0a 40%,
+    #0d1520 70%,
+    #122040 100%
+  );
+  padding: 24px;
+}
+
+.auth-screen__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.auth-screen__logo { margin-bottom: 4px; }
+
+.auth-screen__title {
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.auth-screen__subtitle {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.auth-screen__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-screen__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background var(--transition), opacity var(--transition);
+  cursor: pointer;
+}
+.auth-screen__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-screen__btn--google {
+  background: #fff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+}
+.auth-screen__btn--google:hover:not(:disabled) { background: #f8f9fa; }
+
+.auth-screen__btn--github {
+  background: #24292e;
+  color: #fff;
+  border: 1px solid #444d56;
+}
+.auth-screen__btn--github:hover:not(:disabled) { background: #2f363d; }
+
+.auth-screen__spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0,0,0,0.15);
+  border-top-color: #3c4043;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.auth-screen__btn--github .auth-screen__spinner {
+  border-color: rgba(255,255,255,0.2);
+  border-top-color: #fff;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.auth-screen__error {
+  font-size: 13px;
+  color: var(--danger);
+  background: rgba(234,67,53,0.1);
+  border: 1px solid rgba(234,67,53,0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.auth-screen__disclaimer {
+  font-size: 12px;
+  color: var(--text-subtle);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+/* ─── Auth callback loading screen ─── */
+.auth-callback {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+}
+
+.auth-callback__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.auth-callback__text {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.auth-callback__dots {
+  display: flex;
+  gap: 6px;
+}
+.auth-callback__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.auth-callback__dots span:nth-child(2) { animation-delay: 0.2s; }
+.auth-callback__dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.auth-callback__error {
+  color: var(--danger);
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-callback__back-btn {
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent);
+  transition: background var(--transition);
+}
+.auth-callback__back-btn:hover { background: rgba(66,133,244,0.1); }
+
+/* ─── Full-page loading spinner ─── */
+.auth-loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+}
+.auth-loading__dots {
+  display: flex;
+  gap: 6px;
+}
+.auth-loading__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.auth-loading__dots span:nth-child(2) { animation-delay: 0.2s; }
+.auth-loading__dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ─── Profile menu avatar image ─── */
+.profile-menu__avatar-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+.profile-menu__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

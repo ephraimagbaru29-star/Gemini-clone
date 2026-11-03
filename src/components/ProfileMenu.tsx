@@ -71,9 +71,19 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       >
         <div className="profile-menu__header">
           <div className="profile-menu__identity">
-            <span className="profile-menu__avatar" aria-hidden="true">
-              {settings.userName.charAt(0).toUpperCase()}
-            </span>
+            <div className="profile-menu__avatar-wrap">
+              {settings.userAvatar ? (
+                <img
+                  src={settings.userAvatar}
+                  alt={settings.userName}
+                  className="profile-menu__avatar-img"
+                />
+              ) : (
+                <span className="profile-menu__avatar" aria-hidden="true">
+                  {settings.userName.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
             <div>
               <p className="profile-menu__name">{settings.userName}</p>
               <p className="profile-menu__email">{settings.userEmail}</p>
@@ -104,6 +114,10 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
 
         <p className="profile-menu__disclaimer">
           Nova'sChat is an independent demo, not an official Google product.
+          <br />
+          <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
+            Signed in via {settings.userEmail}
+          </span>
         </p>
       </div>
     </>

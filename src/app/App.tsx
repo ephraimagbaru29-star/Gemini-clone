@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import type { Session } from '@supabase/supabase-js';
 import { TopBar } from '../components/TopBar';
 import { HistoryDrawer } from '../components/HistoryDrawer';
 import { ConversationView } from '../components/ConversationView';
@@ -8,16 +9,33 @@ import { ProfileMenu } from '../components/ProfileMenu';
 import { SettingsDialog } from '../components/SettingsDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Toast } from '../components/Toast';
+import { AuthScreen } from '../components/AuthScreen';
+import { AuthCallback } from '../components/AuthCallback';
+import { supabase, signOut } from '../lib/supabase';
 import {
   loadConversations,
   saveConversations,
   loadSettings,
   saveSettings,
 } from '../lib/storage';
-import type { Conversation, AppSettings, AttachmentMeta, ToastMessage } from '../types/chat';
+import type {
+  Conversation,
+  AppSettings,
+  AttachmentMeta,
+  ToastMessage,
+  AuthUser,
+} from '../types/chat';
+
+// ─── Simple client-side routing ─────────────────────────────────────────────
+function getRoute(): 'callback' | 'app' {
+  return window.location.pathname === '/auth/callback' ? 'callback' : 'app';
+}
 
 export const App: React.FC = () => {
-  const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations());
+  const route = getRoute();
+
+  const [session, setSession] = useState<Session | null | undefined>(undefined); // undefined = loading
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -29,7 +47,54 @@ export const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  // Apply theme on mount and changes
+  // ─── Auth state ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      if (s) setConversations(loadConversations());
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (s) setConversations(loadConversations());
+      if (!s) setConversations([]);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Build AuthUser from Supabase session
+  const authUser: AuthUser | null = session?.user
+    ? {
+        id: session.user.id,
+        email: session.user.email ?? undefined,
+        name:
+          (session.user.user_metadata?.full_name as string | undefined) ??
+          (session.user.user_metadata?.name as string | undefined) ??
+          session.user.email?.split('@')[0] ??
+          'User',
+        avatarUrl:
+          (session.user.user_metadata?.avatar_url as string | undefined) ??
+          (session.user.user_metadata?.picture as string | undefined) ??
+          undefined,
+        provider: session.user.app_metadata?.provider as string | undefined,
+      }
+    : null;
+
+  // Sync authUser name/avatar into settings so drawer + topbar show real info
+  useEffect(() => {
+    if (!authUser) return;
+    setSettings((prev) => ({
+      ...prev,
+      userName: authUser.name ?? prev.userName,
+      userEmail: authUser.email ?? prev.userEmail,
+      userAvatar: authUser.avatarUrl ?? prev.userAvatar,
+    }));
+  }, [authUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Theme ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const root = document.documentElement;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -38,13 +103,14 @@ export const App: React.FC = () => {
     root.setAttribute('data-theme', effective);
   }, [settings.theme]);
 
-  // Persist conversations (when saveHistory is on)
+  // ─── Persist conversations ───────────────────────────────────────────────
   useEffect(() => {
-    if (settings.saveHistory) {
+    if (settings.saveHistory && session) {
       saveConversations(conversations);
     }
-  }, [conversations, settings.saveHistory]);
+  }, [conversations, settings.saveHistory, session]);
 
+  // ─── Toasts ─────────────────────────────────────────────────────────────
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
     const id = uuidv4();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -54,12 +120,11 @@ export const App: React.FC = () => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // ─── Conversation handlers ───────────────────────────────────────────────
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
 
   const handleConversationUpdate = useCallback((updated: Conversation) => {
-    setConversations((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c)),
-    );
+    setConversations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
   }, []);
 
   const handleNewConversation = useCallback((convo: Conversation) => {
@@ -78,9 +143,7 @@ export const App: React.FC = () => {
   }, []);
 
   const handleRenameConversation = useCallback((id: string, title: string) => {
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title } : c)),
-    );
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
     addToast('Conversation renamed', 'success');
   }, [addToast]);
 
@@ -102,8 +165,13 @@ export const App: React.FC = () => {
     addToast('Settings saved', 'success');
   }, [addToast]);
 
-  const handleSignOut = useCallback(() => {
-    addToast('Demo mode: no real account to sign out from.', 'info');
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+      addToast('Signed out successfully', 'success');
+    } catch {
+      addToast('Sign out failed. Please try again.', 'error');
+    }
   }, [addToast]);
 
   const handleUpgrade = () => {
@@ -126,6 +194,24 @@ export const App: React.FC = () => {
     ? conversations.find((c) => c.id === confirmDelete)
     : null;
 
+  // ─── Routing ────────────────────────────────────────────────────────────
+  if (route === 'callback') return <AuthCallback />;
+
+  // Loading state — wait for Supabase to check session
+  if (session === undefined) {
+    return (
+      <div className="auth-loading" aria-label="Loading">
+        <div className="auth-loading__dots">
+          <span /><span /><span />
+        </div>
+      </div>
+    );
+  }
+
+  // Not signed in — show auth screen
+  if (!session) return <AuthScreen />;
+
+  // ─── Main app ────────────────────────────────────────────────────────────
   return (
     <div className="app-shell">
       <TopBar
@@ -137,7 +223,6 @@ export const App: React.FC = () => {
       />
 
       <div className="app-shell__body">
-        {/* Desktop sidebar (≥ 900px) rendered as persistent panel */}
         <HistoryDrawer
           open={drawerOpen}
           conversations={conversations}

@@ -1,3 +1,13 @@
+// ─── Auth ────────────────────────────────────────────────────────────────────
+export interface AuthUser {
+  id: string;
+  email?: string;
+  name?: string;
+  avatarUrl?: string;
+  provider?: string;
+}
+
+// ─── Chat ────────────────────────────────────────────────────────────────────
 export type ChatRole = 'user' | 'assistant' | 'system';
 
 export type MessageStatus = 'sending' | 'complete' | 'error';
