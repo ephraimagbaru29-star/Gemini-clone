@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Toast } from '../components/Toast';
 import { AuthScreen } from '../components/AuthScreen';
 import { AuthCallback } from '../components/AuthCallback';
-import { supabase, signOut } from '../lib/supabase';
+import { supabase, signOut, isSupabaseConfigured } from '../lib/supabase';
 import {
   loadConversations,
   saveConversations,
@@ -49,10 +49,19 @@ export const App: React.FC = () => {
 
   // ─── Auth state ─────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      // No Supabase — go straight to sign-in screen (no infinite loading)
+      setSession(null);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       if (s) setConversations(loadConversations());
+    }).catch(() => {
+      // If Supabase fails for any reason, unblock the UI
+      setSession(null);
     });
 
     // Listen for auth changes

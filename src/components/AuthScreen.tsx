@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SparkleIcon } from './icons';
-import { signInWithProvider, type Provider } from '../lib/supabase';
+import { signInWithProvider, isSupabaseConfigured, type Provider } from '../lib/supabase';
 
 export const AuthScreen: React.FC = () => {
   const [loading, setLoading] = useState<Provider | null>(null);
@@ -20,11 +20,7 @@ export const AuthScreen: React.FC = () => {
 
   return (
     <div className="auth-screen">
-      {/* Background gradient matching the main app */}
-      <div className="auth-screen__bg" aria-hidden="true" />
-
       <div className="auth-screen__card">
-        {/* Logo */}
         <div className="auth-screen__logo">
           <SparkleIcon size={52} />
         </div>
@@ -32,36 +28,55 @@ export const AuthScreen: React.FC = () => {
         <h1 className="auth-screen__title">Nova'sChat</h1>
         <p className="auth-screen__subtitle">Sign in to start your conversation</p>
 
-        {/* Sign-in buttons */}
-        <div className="auth-screen__buttons">
-          <button
-            className="auth-screen__btn auth-screen__btn--google"
-            onClick={() => handleSignIn('google')}
-            disabled={loading !== null}
-            aria-label="Sign in with Google"
-          >
-            {loading === 'google' ? (
-              <span className="auth-screen__spinner" aria-hidden="true" />
-            ) : (
-              <GoogleIcon />
-            )}
-            <span>{loading === 'google' ? 'Redirecting…' : 'Continue with Google'}</span>
-          </button>
+        {!isSupabaseConfigured ? (
+          <div className="auth-screen__setup-notice">
+            <p className="auth-screen__setup-title">⚙️ Setup required</p>
+            <p className="auth-screen__setup-text">
+              Add your Supabase credentials to enable sign-in:
+            </p>
+            <code className="auth-screen__setup-code">
+              VITE_SUPABASE_URL<br />
+              VITE_SUPABASE_ANON_KEY
+            </code>
+            <p className="auth-screen__setup-text">
+              Create a free project at{' '}
+              <a href="https://supabase.com" target="_blank" rel="noreferrer">
+                supabase.com
+              </a>{' '}
+              then add both variables to Vercel → Settings → Environment Variables.
+            </p>
+          </div>
+        ) : (
+          <div className="auth-screen__buttons">
+            <button
+              className="auth-screen__btn auth-screen__btn--google"
+              onClick={() => handleSignIn('google')}
+              disabled={loading !== null}
+              aria-label="Sign in with Google"
+            >
+              {loading === 'google' ? (
+                <span className="auth-screen__spinner" aria-hidden="true" />
+              ) : (
+                <GoogleIcon />
+              )}
+              <span>{loading === 'google' ? 'Redirecting…' : 'Continue with Google'}</span>
+            </button>
 
-          <button
-            className="auth-screen__btn auth-screen__btn--github"
-            onClick={() => handleSignIn('github')}
-            disabled={loading !== null}
-            aria-label="Sign in with GitHub"
-          >
-            {loading === 'github' ? (
-              <span className="auth-screen__spinner" aria-hidden="true" />
-            ) : (
-              <GitHubIcon />
-            )}
-            <span>{loading === 'github' ? 'Redirecting…' : 'Continue with GitHub'}</span>
-          </button>
-        </div>
+            <button
+              className="auth-screen__btn auth-screen__btn--github"
+              onClick={() => handleSignIn('github')}
+              disabled={loading !== null}
+              aria-label="Sign in with GitHub"
+            >
+              {loading === 'github' ? (
+                <span className="auth-screen__spinner" aria-hidden="true" />
+              ) : (
+                <GitHubIcon />
+              )}
+              <span>{loading === 'github' ? 'Redirecting…' : 'Continue with GitHub'}</span>
+            </button>
+          </div>
+        )}
 
         {error && (
           <p className="auth-screen__error" role="alert">{error}</p>
@@ -69,8 +84,6 @@ export const AuthScreen: React.FC = () => {
 
         <p className="auth-screen__disclaimer">
           Nova'sChat is an independent demo — not affiliated with Google.
-          <br />
-          Your account data is managed by Supabase.
         </p>
       </div>
     </div>

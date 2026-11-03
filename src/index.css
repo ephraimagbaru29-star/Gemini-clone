@@ -1581,3 +1581,47 @@ a { color: var(--accent); }
   height: 100%;
   object-fit: cover;
 }
+
+/* ─── Auth setup notice (shown when Supabase not configured) ─── */
+.auth-screen__setup-notice {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.auth-screen__setup-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.auth-screen__setup-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.auth-screen__setup-text a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.auth-screen__setup-text a:hover { text-decoration: underline; }
+
+.auth-screen__setup-code {
+  display: block;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  line-height: 1.8;
+}
