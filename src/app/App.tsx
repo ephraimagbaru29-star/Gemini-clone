@@ -184,7 +184,7 @@ export const App: React.FC = () => {
   }, [addToast]);
 
   const handleUpgrade = () => {
-    addToast('Upgrade is a demo feature — no billing is connected.', 'info');
+    addToast('Upgrade plan — coming soon.', 'info');
   };
 
   const handleAddAttachments = useCallback((atts: AttachmentMeta[]) => {

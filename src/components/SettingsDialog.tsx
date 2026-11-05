@@ -79,25 +79,13 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             </div>
           </section>
 
-          {/* Account */}
+          {/* Account — read only, pulled from real auth */}
           <section className="settings-dialog__section">
-            <h3 className="settings-dialog__section-title">Demo account</h3>
-            <label className="settings-dialog__label" htmlFor="settings-name">Display name</label>
-            <input
-              id="settings-name"
-              className="settings-dialog__input"
-              type="text"
-              value={local.userName}
-              onChange={(e) => setLocal((s) => ({ ...s, userName: e.target.value }))}
-            />
-            <label className="settings-dialog__label" htmlFor="settings-email">Email</label>
-            <input
-              id="settings-email"
-              className="settings-dialog__input"
-              type="email"
-              value={local.userEmail}
-              onChange={(e) => setLocal((s) => ({ ...s, userEmail: e.target.value }))}
-            />
+            <h3 className="settings-dialog__section-title">Account</h3>
+            <label className="settings-dialog__label">Display name</label>
+            <p className="settings-dialog__readonly">{local.userName || '—'}</p>
+            <label className="settings-dialog__label">Email</label>
+            <p className="settings-dialog__readonly">{local.userEmail || '—'}</p>
           </section>
 
           {/* History */}
@@ -121,8 +109,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           <section className="settings-dialog__section">
             <h3 className="settings-dialog__section-title">About</h3>
             <p className="settings-dialog__about-text">
-              Nova'sChat v0.1 — an independent AI chat demo built with React, TypeScript, and Vite.
-              Not affiliated with Google. Conversations are stored locally in your browser.
+              Nova'sChat v0.1 — AI chat powered by Google Gemini.
+              Built with React, TypeScript, and Vite.
+              Conversations are stored locally in your browser.
             </p>
           </section>
         </div>

@@ -83,7 +83,7 @@ export const AuthScreen: React.FC = () => {
         )}
 
         <p className="auth-screen__disclaimer">
-          Nova'sChat is an independent demo — not affiliated with Google.
+          Nova'sChat — powered by Google Gemini
         </p>
       </div>
     </div>

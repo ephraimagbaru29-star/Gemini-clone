@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { MessageList } from './MessageList';
 import { WelcomeScreen } from './WelcomeScreen';
 import { Composer } from './Composer';
-import { isDemoMode, sendMessage } from '../lib/chatApi';
+import { sendMessage } from '../lib/chatApi';
 import type { ChatMessage, Conversation, AttachmentMeta } from '../types/chat';
 
 interface ConversationViewProps {
@@ -110,16 +110,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           status: 'complete',
         };
 
-        // Add demo label if in demo mode
-        const demoNote = isDemoMode()
-          ? '\n\n---\n*⚠ Demo mode — no real AI provider configured.*'
-          : '';
-
         const finalConvo = {
           ...currentConvo,
           messages: currentConvo.messages.map((m) =>
             m.id === assistantMsg.id
-              ? { ...finalAssistant, content: accumulated + demoNote }
+              ? { ...finalAssistant, content: accumulated }
               : m,
           ),
           updatedAt: Date.now(),

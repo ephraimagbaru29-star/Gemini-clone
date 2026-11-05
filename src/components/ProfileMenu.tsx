@@ -49,7 +49,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       onClick: () => { alert('Help & feedback — coming soon in a real deployment.'); onClose(); },
     },
     {
-      label: 'Sign out / Reset demo',
+      label: 'Sign out',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
@@ -87,7 +87,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             <div>
               <p className="profile-menu__name">{settings.userName}</p>
               <p className="profile-menu__email">{settings.userEmail}</p>
-              <span className="profile-menu__badge">Demo account</span>
             </div>
           </div>
           <button className="profile-menu__close" onClick={onClose} aria-label="Close account menu">
@@ -113,11 +112,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
         </ul>
 
         <p className="profile-menu__disclaimer">
-          Nova'sChat is an independent demo, not an official Google product.
-          <br />
-          <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
-            Signed in via {settings.userEmail}
-          </span>
+          Nova'sChat — powered by Google Gemini
         </p>
       </div>
     </>

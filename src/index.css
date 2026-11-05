@@ -1625,3 +1625,14 @@ a { color: var(--accent); }
   color: var(--accent);
   line-height: 1.8;
 }
+
+/* ─── Settings dialog read-only field ─── */
+.settings-dialog__readonly {
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 4px;
+}
