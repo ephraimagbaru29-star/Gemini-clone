@@ -1636,3 +1636,59 @@ a { color: var(--accent); }
   padding: 9px 12px;
   margin-bottom: 4px;
 }
+
+/* ─── Generated image in message bubble ─── */
+.message__generated-image-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.message__generated-image {
+  max-width: 100%;
+  width: min(480px, 100%);
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.message__image-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  width: fit-content;
+}
+.message__image-download-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* ─── Generating image loading state ─── */
+.message__image-generating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.message__image-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}

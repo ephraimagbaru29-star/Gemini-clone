@@ -10,8 +10,11 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.4.0",
     "@supabase/supabase-js": "^2.118.0",
+    "@vercel/node": "^5.0.2",
     "dompurify": "^3.1.6",
+    "groq-sdk": "^0.9.1",
     "marked": "^12.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

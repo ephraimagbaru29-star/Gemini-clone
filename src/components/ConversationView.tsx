@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { MessageList } from './MessageList';
 import { WelcomeScreen } from './WelcomeScreen';
 import { Composer } from './Composer';
-import { sendMessage } from '../lib/chatApi';
+import { sendMessage, generateImage, isImageRequest } from '../lib/chatApi';
 import type { ChatMessage, Conversation, AttachmentMeta } from '../types/chat';
 
 interface ConversationViewProps {
@@ -78,6 +78,66 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       const ctrl = new AbortController();
       abortRef.current = ctrl;
 
+      // ─── Image generation path ───────────────────────────────────────────
+      if (isImageRequest(text)) {
+        try {
+          // Show a "generating image…" placeholder while we wait
+          const thinkingConvo = {
+            ...currentConvo,
+            messages: currentConvo.messages.map((m) =>
+              m.id === assistantMsg.id
+                ? { ...assistantMsg, content: '🎨 Generating image…', status: 'sending' as const }
+                : m,
+            ),
+          };
+          onConversationUpdate(thinkingConvo);
+          currentConvo = thinkingConvo;
+
+          const result = await generateImage(text);
+
+          const imageAssistant: ChatMessage = {
+            ...assistantMsg,
+            content: `Here's your generated image for: *${result.prompt ?? text}*`,
+            imageUrl: result.imageUrl,
+            imagePrompt: result.prompt ?? text,
+            status: 'complete',
+          };
+
+          onConversationUpdate({
+            ...currentConvo,
+            messages: currentConvo.messages.map((m) =>
+              m.id === assistantMsg.id ? imageAssistant : m,
+            ),
+            updatedAt: Date.now(),
+          });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') return;
+          const errorMsg = (err as Error).message || 'Image generation failed';
+          console.error('[ConversationView] Image generation error:', err);
+
+          const isContentPolicy = errorMsg.toLowerCase().includes('content policy') ||
+            errorMsg.toLowerCase().includes('safety');
+
+          const displayMsg = isContentPolicy
+            ? `⚠️ This image request was blocked by the content policy. Try a different description.`
+            : `⚠️ Image generation failed: ${errorMsg}`;
+
+          onConversationUpdate({
+            ...currentConvo,
+            messages: currentConvo.messages.map((m) =>
+              m.id === assistantMsg.id
+                ? { ...assistantMsg, content: displayMsg, status: 'error' as const }
+                : m,
+            ),
+          });
+        } finally {
+          setIsGenerating(false);
+          abortRef.current = null;
+        }
+        return;
+      }
+
+      // ─── Text generation path ────────────────────────────────────────────
       try {
         const allMsgs = currentConvo.messages.slice(0, -1); // exclude placeholder
         let accumulated = '';
@@ -110,30 +170,29 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           status: 'complete',
         };
 
-        const finalConvo = {
+        onConversationUpdate({
           ...currentConvo,
           messages: currentConvo.messages.map((m) =>
-            m.id === assistantMsg.id
-              ? { ...finalAssistant, content: accumulated }
-              : m,
+            m.id === assistantMsg.id ? finalAssistant : m,
           ),
           updatedAt: Date.now(),
-        };
-        onConversationUpdate(finalConvo);
+        });
       } catch (err) {
         if ((err as Error).name === 'AbortError') return;
 
         const errorMsg = (err as Error).message || 'Unknown error';
-        console.error('Chat error:', err);
+        console.error('[ConversationView] Chat error:', err);
 
-        // Friendly message for overload errors
         const isOverload = errorMsg.includes('503') ||
           errorMsg.toLowerCase().includes('overloaded') ||
           errorMsg.toLowerCase().includes('high demand') ||
           errorMsg.toLowerCase().includes('unavailable');
 
-        const displayMsg = isOverload
-          ? `Gemini is currently overloaded. Please wait a moment and try again.`
+        const isRateLimit = errorMsg.includes('429') ||
+          errorMsg.toLowerCase().includes('rate limit');
+
+        const displayMsg = isOverload || isRateLimit
+          ? `The AI service is temporarily busy. Please wait a moment and try again.`
           : `Something went wrong.\n\n\`${errorMsg}\`\n\nPlease try again.`;
 
         const errorAssistant: ChatMessage = {
@@ -141,6 +200,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           content: displayMsg,
           status: 'error',
         };
+
         onConversationUpdate({
           ...currentConvo,
           messages: currentConvo.messages.map((m) =>
@@ -162,7 +222,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const handleRegenerate = useCallback(() => {
     if (!conversation) return;
     const msgs = conversation.messages;
-    // Remove last assistant message and resend
     const lastAssistantIdx = [...msgs].reverse().findIndex((m) => m.role === 'assistant');
     if (lastAssistantIdx === -1) return;
     const realIdx = msgs.length - 1 - lastAssistantIdx;
