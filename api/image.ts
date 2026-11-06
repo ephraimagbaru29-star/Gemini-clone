@@ -1,21 +1,33 @@
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// fal.ai model — fast, high quality, free tier available
 const FAL_MODEL = process.env.FAL_MODEL ?? 'fal-ai/flux/schnell';
 
+export const config = {
+  api: { bodyParser: true },
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const falKey = process.env.FAL_KEY;
   if (!falKey) {
     return res.status(500).json({ error: 'FAL_KEY is not configured on the server.' });
   }
 
-  const { prompt } = req.body as { prompt?: string };
+  let body: { prompt?: string };
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body ?? {};
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
 
+  const { prompt } = body;
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
     return res.status(400).json({ error: 'prompt is required' });
   }
@@ -23,7 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const safePrompt = prompt.trim().slice(0, 1000);
 
   try {
-    fal.config({ credentials: falKey });
+    // Create a fresh client per request with the server-side key
+    const fal = createFalClient({ credentials: falKey });
 
     const result = await fal.subscribe(FAL_MODEL, {
       input: {
@@ -33,22 +46,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         enable_safety_checker: true,
       },
       logs: false,
-    }) as {
-      data?: {
-        images?: Array<{ url: string; width?: number; height?: number; content_type?: string }>;
-      };
-      images?: Array<{ url: string; width?: number; height?: number; content_type?: string }>;
-    };
+    });
 
-    // Handle both result shapes from different SDK versions
-    const images = result?.data?.images ?? result?.images;
+    // Log the raw result shape for debugging (visible in Vercel function logs)
+    console.log('[api/image] result keys:', Object.keys(result ?? {}));
+
+    // fal.subscribe returns the result directly — shape: { images: [...], ... }
+    // Handle both possible shapes defensively
+    const anyResult = result as Record<string, unknown>;
+    const images = (
+      Array.isArray(anyResult?.images) ? anyResult.images :
+      Array.isArray((anyResult?.data as Record<string, unknown>)?.images)
+        ? (anyResult.data as Record<string, unknown>).images :
+      null
+    ) as Array<{ url: string; width?: number; height?: number; content_type?: string }> | null;
 
     if (!images || images.length === 0) {
-      return res.status(500).json({ error: 'No image returned by fal.ai. Try a different prompt.' });
+      console.error('[api/image] No images in result:', JSON.stringify(result));
+      return res.status(500).json({
+        error: 'No image returned by fal.ai. Try a different prompt.',
+        debug_keys: Object.keys(anyResult ?? {}),
+      });
     }
 
     const image = images[0];
-
     return res.status(200).json({
       imageUrl: image.url,
       mimeType: image.content_type ?? 'image/jpeg',
@@ -57,11 +78,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prompt: safePrompt,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
+    const message = err instanceof Error ? err.message : String(err);
     console.error('[api/image] fal.ai error:', message);
 
     const status =
-      message.includes('rate limit') || message.includes('429') ? 429
+      message.includes('429') || message.toLowerCase().includes('rate limit') ? 429
       : message.includes('401') || message.includes('403') ? 401
       : message.includes('safety') || message.includes('content policy') ? 422
       : 500;
