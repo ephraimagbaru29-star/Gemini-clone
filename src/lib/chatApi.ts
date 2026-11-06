@@ -334,7 +334,7 @@ export interface GenerateImageResult {
 }
 
 // Route image generation to /api/image (fal.ai, server-side FAL_KEY)
-// Falls back to Gemini image model if server route is unavailable
+// Falls back to Gemini image model if fal.ai is unavailable or balance is exhausted
 export async function generateImage(prompt: string): Promise<GenerateImageResult> {
   // 1. Try fal.ai via server route
   try {
@@ -353,35 +353,34 @@ export async function generateImage(prompt: string): Promise<GenerateImageResult
     }
 
     if (res.ok) {
-      // Success — return the image data
       return responseData as unknown as GenerateImageResult;
     }
 
     const errMsg = (responseData.error as string) ?? `Server error ${res.status}`;
+    const errDetails = responseData.details as { detail?: string } | undefined;
+    const detailMsg = errDetails?.detail ?? '';
 
-    // Safety/content policy violation — surface immediately, don't fall back
-    if (res.status === 422) {
-      throw new Error(`Content policy violation: ${errMsg}`);
-    }
+    // Safety/content policy violation — surface immediately
+    if (res.status === 422) throw new Error(`Content policy violation: ${errMsg}`);
 
-    // FAL_KEY not configured — fall through to Gemini fallback
-    if (res.status === 500 && errMsg.includes('FAL_KEY')) {
-      console.warn('[chatApi] FAL_KEY not configured, falling back to Gemini images');
+    // Balance exhausted or billing issue — fall through to Gemini
+    if (res.status === 403 || detailMsg.toLowerCase().includes('balance') || detailMsg.toLowerCase().includes('locked')) {
+      console.warn('[chatApi] fal.ai balance exhausted, falling back to Gemini images');
       // falls through below
-    } else if (res.status === 404) {
-      // Route doesn't exist (local dev without vercel dev) — fall through
-      console.warn('[chatApi] /api/image not found, falling back to Gemini images');
+    } else if (res.status === 404 || res.status === 405) {
+      // Route doesn't exist (local dev) — fall through
+    } else if (res.status === 500 && errMsg.includes('FAL_KEY')) {
+      // Key not configured — fall through
     } else {
-      // Real fal.ai error — surface it
-      throw new Error(errMsg);
+      throw new Error(detailMsg || errMsg);
     }
   } catch (err) {
     const msg = (err as Error).message ?? '';
-    // Only suppress errors that mean "route unavailable" — surface everything else
     const isFallthrough =
       msg.includes('FAL_KEY') ||
-      msg.includes('not found') ||
-      msg.includes('Failed to fetch');
+      msg.includes('balance') ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('not found');
     if (!isFallthrough) throw err;
     console.warn('[chatApi] fal.ai unavailable, trying Gemini:', msg);
   }
