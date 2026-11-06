@@ -1,7 +1,7 @@
-import * as fal from '@fal-ai/client';
+import { fal } from '@fal-ai/client';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// fal.ai model — fast, high quality, good free tier
+// fal.ai model — fast, high quality, free tier available
 const FAL_MODEL = process.env.FAL_MODEL ?? 'fal-ai/flux/schnell';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,7 +23,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const safePrompt = prompt.trim().slice(0, 1000);
 
   try {
-    // Configure fal.ai with the server-side key
     fal.config({ credentials: falKey });
 
     const result = await fal.subscribe(FAL_MODEL, {
@@ -35,10 +34,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       logs: false,
     }) as {
+      data?: {
+        images?: Array<{ url: string; width?: number; height?: number; content_type?: string }>;
+      };
       images?: Array<{ url: string; width?: number; height?: number; content_type?: string }>;
     };
 
-    const images = result?.images;
+    // Handle both result shapes from different SDK versions
+    const images = result?.data?.images ?? result?.images;
+
     if (!images || images.length === 0) {
       return res.status(500).json({ error: 'No image returned by fal.ai. Try a different prompt.' });
     }
@@ -56,7 +60,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[api/image] fal.ai error:', message);
 
-    const status = message.includes('rate limit') || message.includes('429') ? 429
+    const status =
+      message.includes('rate limit') || message.includes('429') ? 429
       : message.includes('401') || message.includes('403') ? 401
       : message.includes('safety') || message.includes('content policy') ? 422
       : 500;
