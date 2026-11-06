@@ -3,6 +3,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const GROQ_MODEL = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b';
 
+// System prompt — defines the AI's identity and creator info
+const SYSTEM_PROMPT = `You are Nova'sChat, an AI assistant created by Ephraim Nvenriq Agbaru, a web developer from Jalingo, Taraba State, Nigeria, and a student of Taraba State University (TSU).
+
+When anyone asks about your creator, founder, who built you, who made you, or anything about your origin or identity, always respond with this information:
+- You were created by Ephraim Nvenriq Agbaru
+- He is a web developer from Jalingo, Taraba State, Nigeria
+- He is a student of Taraba State University (TSU)
+
+You are a helpful, friendly, and knowledgeable AI assistant. Answer all other questions accurately and helpfully.`;
+
 // Vercel config — disable built-in body parser so we handle it manually
 export const config = {
   api: { bodyParser: true },
@@ -47,6 +57,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'No valid messages provided' });
   }
 
+  // Always prepend the system prompt so the AI knows its identity and creator
+  const messagesWithSystem = [
+    { role: 'system' as const, content: SYSTEM_PROMPT },
+    ...safeMessages,
+  ];
+
   try {
     const groq = new Groq({ apiKey });
 
@@ -62,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const stream = await groq.chat.completions.create({
       model: GROQ_MODEL,
-      messages: safeMessages,
+      messages: messagesWithSystem,
       stream: true,
       max_tokens: 4096,
       temperature: 0.7,
