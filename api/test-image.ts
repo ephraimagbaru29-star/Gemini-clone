@@ -18,12 +18,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         prompt: 'a small red circle on a white background',
         image_size: 'square_hd',
         num_images: 1,
-        enable_safety_checker: true,
       },
       logs: false,
     });
 
-    // Return the full raw result so we can see its exact shape
     return res.status(200).json({
       ok: true,
       model,
@@ -31,14 +29,22 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       result,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
+    // Extract ALL fields from ApiError — message may be empty but body has details
+    const apiErr = err as { message?: string; status?: number; body?: unknown; stack?: string };
+    const message = apiErr.message || '(empty message)';
+    const status = apiErr.status;
+    const body = apiErr.body;
+
+    console.error('[test-image] ApiError:', { message, status, body });
+
     return res.status(500).json({
       ok: false,
       stage: 'fal_call',
       model,
       error: message,
-      stack,
+      http_status: status,
+      error_body: body,   // ← this is the real error from fal.ai
+      stack: apiErr.stack,
     });
   }
 }

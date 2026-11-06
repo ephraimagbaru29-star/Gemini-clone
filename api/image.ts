@@ -78,15 +78,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prompt: safePrompt,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[api/image] fal.ai error:', message);
+    // ApiError from @fal-ai/client has .status and .body, message may be empty
+    const apiErr = err as { message?: string; status?: number; body?: unknown };
+    const bodyStr = apiErr.body ? JSON.stringify(apiErr.body) : '';
+    const message = apiErr.message || bodyStr || 'Unknown fal.ai error';
+    console.error('[api/image] fal.ai error:', { message, status: apiErr.status, body: apiErr.body });
 
     const status =
-      message.includes('429') || message.toLowerCase().includes('rate limit') ? 429
-      : message.includes('401') || message.includes('403') ? 401
-      : message.includes('safety') || message.includes('content policy') ? 422
+      apiErr.status === 429 || message.includes('429') ? 429
+      : apiErr.status === 401 || apiErr.status === 403 ? 401
+      : apiErr.status === 422 || message.includes('safety') ? 422
       : 500;
 
-    return res.status(status).json({ error: message });
+    return res.status(status).json({ error: message, details: apiErr.body });
   }
 }
