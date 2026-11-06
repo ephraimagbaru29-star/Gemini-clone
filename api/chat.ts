@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GROQ_MODEL = process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile';
+const GROQ_MODEL = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b';
 
 // Vercel config — disable built-in body parser so we handle it manually
 export const config = {

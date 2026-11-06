@@ -21,7 +21,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     const groq = new Groq({ apiKey });
 
     const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
       messages: [{ role: 'user', content: 'Say exactly: GROQ_OK' }],
       stream: false,
       max_tokens: 20,
