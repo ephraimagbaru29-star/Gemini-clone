@@ -344,30 +344,46 @@ export async function generateImage(prompt: string): Promise<GenerateImageResult
       body: JSON.stringify({ prompt }),
     });
 
-    if (res.ok) {
-      const data = await res.json() as GenerateImageResult;
-      return data;
+    // Read body ONCE regardless of status
+    let responseData: Record<string, unknown> = {};
+    try {
+      responseData = await res.json();
+    } catch {
+      responseData = { error: `Server error ${res.status} (no JSON body)` };
     }
 
-    // Parse error
-    const errData = await res.json().catch(() => ({ error: `Server error ${res.status}` })) as { error?: string };
-    const errMsg = errData.error ?? `Server error ${res.status}`;
+    if (res.ok) {
+      // Success — return the image data
+      return responseData as unknown as GenerateImageResult;
+    }
 
-    // Safety/content policy violation — don't fall back, surface immediately
-    if (res.status === 422) throw new Error(`Content policy violation: ${errMsg}`);
+    const errMsg = (responseData.error as string) ?? `Server error ${res.status}`;
 
-    // FAL_KEY not configured — fall through to Gemini
+    // Safety/content policy violation — surface immediately, don't fall back
+    if (res.status === 422) {
+      throw new Error(`Content policy violation: ${errMsg}`);
+    }
+
+    // FAL_KEY not configured — fall through to Gemini fallback
     if (res.status === 500 && errMsg.includes('FAL_KEY')) {
       console.warn('[chatApi] FAL_KEY not configured, falling back to Gemini images');
+      // falls through below
+    } else if (res.status === 404) {
+      // Route doesn't exist (local dev without vercel dev) — fall through
+      console.warn('[chatApi] /api/image not found, falling back to Gemini images');
     } else {
+      // Real fal.ai error — surface it
       throw new Error(errMsg);
     }
   } catch (err) {
     const msg = (err as Error).message ?? '';
-    // If route 404s (local dev), fall through. Otherwise rethrow.
-    if (!msg.includes('Server error 404') && !msg.includes('FAL_KEY')) {
-      throw err;
-    }
+    // Only suppress errors that mean "route unavailable" — surface everything else
+    const isFallthrough =
+      msg.includes('FAL_KEY') ||
+      msg.includes('not found') ||
+      msg.includes('Failed to fetch');
+    if (!isFallthrough) throw err;
+    console.warn('[chatApi] fal.ai unavailable, trying Gemini:', msg);
   }
 
   // 2. Fallback — Gemini image generation (client-side key)

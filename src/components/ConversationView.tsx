@@ -120,9 +120,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
           const displayMsg = isContentPolicy
             ? `⚠️ This image request was blocked by the content policy. Try a different description.`
-            : `⚠️ Image generation failed: ${errorMsg}`;
-
-          onConversationUpdate({
+            : `⚠️ Image generation failed: ${errorMsg}`;          onConversationUpdate({
             ...currentConvo,
             messages: currentConvo.messages.map((m) =>
               m.id === assistantMsg.id
